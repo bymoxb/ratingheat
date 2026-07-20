@@ -1,0 +1,7 @@
+pandas
+pyarrow
+psutil
+duckdb
+fastapi
+fastapi[standard]
+sqlalchemy
