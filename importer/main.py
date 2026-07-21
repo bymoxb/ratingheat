@@ -1,398 +1,169 @@
-import sqlite3
-import csv
-import gzip
+import duckdb
 import os
-import psutil
+import logging
 import time
-
-
-def mostrar_memoria(etapa=""):
-    proceso = psutil.Process(os.getpid())
-    memoria = proceso.memory_info().rss / 1024 / 1024
-    print(f"[MEMORIA {etapa}] {memoria:.2f} MB")
-
-
-def crear_tabla_ratings(conn, file_ratings):
-    print("Importando ratings...")
-
-    cur = conn.cursor()
-
-    cur.execute("DROP TABLE IF EXISTS ratings;")
-
-    cur.execute("""
-        CREATE TABLE ratings (
-            tconst TEXT PRIMARY KEY,
-            averageRating REAL,
-            numVotes INTEGER
-        );
-    """)
-
-    batch = []
-
-    with gzip.open(
-        file_ratings,
-        "rt",
-        encoding="utf-8"
-    ) as f:
-
-        reader = csv.DictReader(
-            f,
-            delimiter="\t"
-        )
-
-        for row in reader:
-
-            batch.append(
-                (
-                    row["tconst"],
-                    float(row["averageRating"])
-                    if row["averageRating"] != "\\N"
-                    else None,
-
-                    int(row["numVotes"])
-                    if row["numVotes"] != "\\N"
-                    else None
-                )
-            )
-
-            if len(batch) >= 10000:
-
-                cur.executemany(
-                    """
-                    INSERT INTO ratings
-                    VALUES (?,?,?)
-                    """,
-                    batch
-                )
-
-                conn.commit()
-                batch.clear()
-
-    if batch:
-        cur.executemany(
-            """
-            INSERT INTO ratings
-            VALUES (?,?,?)
-            """,
-            batch
-        )
-        conn.commit()
-
-    cur.execute("""
-        CREATE INDEX IF NOT EXISTS idx_ratings_tconst
-        ON ratings(tconst)
-    """)
-
-    conn.commit()
-
-
-def procesar_series(
-    conn,
-    file_basics,
-    min_votes
-):
-
-    print("Procesando series...")
-
-    cur = conn.cursor()
-
-    cur.execute("""
-        DROP TABLE IF EXISTS series;
-    """)
-
-    cur.execute("""
-        CREATE TABLE series (
-            tconst TEXT PRIMARY KEY,
-            titleType TEXT,
-            primaryTitle TEXT,
-            startYear INTEGER,
-            endYear INTEGER,
-            genres TEXT,
-            averageRating REAL,
-            numVotes INTEGER
-        );
-    """)
-
-    batch = []
-
-    with gzip.open(
-        file_basics,
-        "rt",
-        encoding="utf-8"
-    ) as f:
-
-        reader = csv.DictReader(
-            f,
-            delimiter="\t"
-        )
-
-        for row in reader:
-
-            if row["titleType"] not in (
-                "tvSeries",
-                "tvMiniSeries"
-            ):
-                continue
-
-            rating = cur.execute(
-                """
-                SELECT
-                    averageRating,
-                    numVotes
-                FROM ratings
-                WHERE tconst=?
-                """,
-                (row["tconst"],)
-            ).fetchone()
-
-            if rating is None:
-                continue
-
-            if rating[1] < min_votes:
-                continue
-
-            batch.append(
-                (
-                    row["tconst"],
-                    row["titleType"],
-                    row["primaryTitle"],
-
-                    int(row["startYear"])
-                    if row["startYear"] != "\\N"
-                    else None,
-
-                    int(row["endYear"])
-                    if row["endYear"] != "\\N"
-                    else None,
-
-                    row["genres"],
-
-                    rating[0],
-                    rating[1]
-                )
-            )
-
-            if len(batch) >= 5000:
-
-                cur.executemany(
-                    """
-                    INSERT INTO series
-                    VALUES (?,?,?,?,?,?,?,?)
-                    """,
-                    batch
-                )
-
-                conn.commit()
-                batch.clear()
-
-    if batch:
-
-        cur.executemany(
-            """
-            INSERT INTO series
-            VALUES (?,?,?,?,?,?,?,?)
-            """,
-            batch
-        )
-
-        conn.commit()
-
-    cur.execute("""
-        CREATE INDEX IF NOT EXISTS idx_series_tconst
-        ON series(tconst)
-    """)
-
-    conn.commit()
-
-
-def procesar_episodios(
-    conn,
-    file_episodes
-):
-
-    print("Procesando episodios...")
-
-    cur = conn.cursor()
-
-    cur.execute("""
-        DROP TABLE IF EXISTS episodes;
-    """)
-
-    cur.execute("""
-        CREATE TABLE episodes (
-            tconst TEXT PRIMARY KEY,
-            parentTconst TEXT,
-            seasonNumber INTEGER,
-            episodeNumber INTEGER,
-            averageRating REAL,
-            numVotes INTEGER
-        );
-    """)
-
-    batch = []
-
-    with gzip.open(
-        file_episodes,
-        "rt",
-        encoding="utf-8"
-    ) as f:
-
-        reader = csv.DictReader(
-            f,
-            delimiter="\t"
-        )
-
-        for row in reader:
-
-            exists = cur.execute(
-                """
-                SELECT 1
-                FROM series
-                WHERE tconst=?
-                """,
-                (row["parentTconst"],)
-            ).fetchone()
-
-            if exists is None:
-                continue
-
-            rating = cur.execute(
-                """
-                SELECT
-                    averageRating,
-                    numVotes
-                FROM ratings
-                WHERE tconst=?
-                """,
-                (row["tconst"],)
-            ).fetchone()
-
-            if rating is None:
-                continue
-
-            batch.append(
-                (
-                    row["tconst"],
-                    row["parentTconst"],
-
-                    int(row["seasonNumber"])
-                    if row["seasonNumber"] != "\\N"
-                    else None,
-
-                    int(row["episodeNumber"])
-                    if row["episodeNumber"] != "\\N"
-                    else None,
-
-                    rating[0],
-                    rating[1]
-                )
-            )
-
-            if len(batch) >= 5000:
-
-                cur.executemany(
-                    """
-                    INSERT INTO episodes
-                    VALUES (?,?,?,?,?,?)
-                    """,
-                    batch
-                )
-
-                conn.commit()
-                batch.clear()
-
-    if batch:
-
-        cur.executemany(
-            """
-            INSERT INTO episodes
-            VALUES (?,?,?,?,?,?)
-            """,
-            batch
-        )
-
-        conn.commit()
-
-
-def exportar_sqlite_final(
-    conn,
-    output
-):
-
-    print("Creando SQLite final...")
-
-    if os.path.exists(output):
-        os.remove(output)
-
-    final = sqlite3.connect(output)
-
-    conn.backup(final)
-
-    final.close()
+from dotenv import load_dotenv
+
+DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+
+# --- Logging Configuration ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt=DATE_FORMAT
+)
+logger = logging.getLogger(__name__)
+
+load_dotenv()
+
+# --- Configuration & Constants ---
+IMDB_RATINGS_PATH = os.getenv(
+    "IMDB_RATINGS_PATH", "https://datasets.imdbws.com/title.ratings.tsv.gz")
+IMDB_BASICS_PATH = os.getenv(
+    "IMDB_BASICS_PATH", "https://datasets.imdbws.com/title.basics.tsv.gz")
+IMDB_EPISODE_PATH = os.getenv(
+    "IMDB_EPISODE_PATH", "https://datasets.imdbws.com/title.episode.tsv.gz")
+
+# Parameterized Filters
+MIN_VOTES = int(os.getenv("IMDB_MIN_VOTES", "10000"))
+RAW_TITLE_TYPES = os.getenv("IMDB_TITLE_TYPES", "tvSeries,tvMiniSeries")
+FORMATTED_TITLE_TYPES = ",".join(
+    [f"'{t.strip()}'" for t in RAW_TITLE_TYPES.split(",")])
+
+MEMORY_LIMIT = os.getenv("DUCKDB_MEMORY_LIMIT", "512MB")
+THREADS = os.getenv("DUCKDB_THREADS", os.cpu_count() or 1)
+DATABASE = os.getenv("DUCKDB_DATABASE", "imdb.duckdb")
+SQLITE_PATH = os.getenv("SQLITE_PATH", "imdb.sqlite")
+
+
+def elapsed_time_str(seconds):
+    """
+    Returns a human-readable string of the duration.
+    """
+    hours, rem = divmod(seconds, 3600)
+    minutes, secs = divmod(rem, 60)
+
+    if seconds < 3600:
+        return f"{int(minutes)} min and {secs:.2f} s."
+    else:
+        return f"{int(hours)} h, {int(minutes)} min and {secs:.2f} s."
+
+
+def get_connection():
+    try:
+        con = duckdb.connect(DATABASE)
+        con.execute(f"SET memory_limit='{MEMORY_LIMIT}';")
+        con.execute(f"SET threads={THREADS};")
+        con.execute("SET preserve_insertion_order=false;")
+        logger.info(
+            f"Connected to DuckDB (Threads: {THREADS}, Memory: {MEMORY_LIMIT})")
+        return con
+    except Exception as e:
+        logger.error(f"Database connection error: {e}")
+        raise
+
+
+def process_imdb_data(con):
+    try:
+        logger.info("Processing Ratings...")
+        con.execute(
+            f"CREATE OR REPLACE TABLE ratings AS SELECT * FROM read_csv_auto('{IMDB_RATINGS_PATH}', delim='\t', header=True, compression='gzip');")
+
+        logger.info(f"Processing Series (Types: {RAW_TITLE_TYPES})...")
+        con.execute(f"""
+            CREATE OR REPLACE TABLE series AS
+            SELECT tconst, titleType, primaryTitle, TRY_CAST(startYear AS INTEGER) AS startYear, TRY_CAST(endYear AS INTEGER) AS endYear, genres
+            FROM read_csv_auto('{IMDB_BASICS_PATH}', delim='\t', header=True, compression='gzip')
+            WHERE titleType IN ({FORMATTED_TITLE_TYPES});
+        """)
+
+        logger.info(f"Filtering with Votes >= {MIN_VOTES}...")
+        con.execute(
+            f"CREATE OR REPLACE TABLE series_rating AS SELECT s.*, r.averageRating, r.numVotes FROM series s INNER JOIN ratings r ON s.tconst = r.tconst WHERE r.numVotes >= {MIN_VOTES};")
+
+        logger.info("Processing Episodes...")
+        con.execute(f"""
+            CREATE OR REPLACE TABLE episodes AS
+            SELECT e.tconst, e.parentTconst, TRY_CAST(e.seasonNumber AS INTEGER) AS seasonNumber, TRY_CAST(e.episodeNumber AS INTEGER) AS episodeNumber, r.averageRating, r.numVotes
+            FROM read_csv_auto('{IMDB_EPISODE_PATH}', delim='\t', header=True, compression='gzip') e
+            JOIN ratings r ON e.tconst = r.tconst
+            JOIN series s ON e.parentTconst = s.tconst;
+        """)
+    except Exception as e:
+        logger.error(f"Data processing failed: {e}")
+        raise
+
+
+def record_import_metadata(con):
+    """
+    Creates a metadata table to track when the import occurred.
+    """
+    try:
+        logger.info("Recording import timestamp...")
+        con.execute("""
+            CREATE OR REPLACE TABLE import_metadata AS 
+            SELECT CURRENT_TIMESTAMP as imported_at;
+        """)
+    except Exception as e:
+        logger.error(f"Failed to record metadata: {e}")
+        raise
+
+
+def export_to_sqlite(con):
+    try:
+        logger.info(f"Exporting to SQLite: {SQLITE_PATH}")
+        con.execute(f"ATTACH '{SQLITE_PATH}' AS sqlite_db (TYPE SQLITE);")
+        # con.execute("DROP TABLE IF EXISTS sqlite_db.series; DROP TABLE IF EXISTS sqlite_db.episodes; DROP TABLE IF EXISTS sqlite_db.import_metadata;")
+        con.execute(
+            "CREATE OR REPLACE TABLE sqlite_db.series AS SELECT * FROM series_rating;")
+        con.execute(
+            "CREATE OR REPLACE TABLE sqlite_db.episodes AS SELECT * FROM episodes;")
+        con.execute(
+            "CREATE OR REPLACE TABLE sqlite_db.import_metadata AS SELECT * FROM import_metadata;")
+        con.execute("DETACH sqlite_db;")
+    except Exception as e:
+        logger.error(f"Export failed: {e}")
+        raise
+
+
+def cleanup():
+    if os.path.exists(DATABASE):
+        try:
+            os.remove(DATABASE)
+            logger.info(f"Cleaned up temporary file: {DATABASE}")
+        except Exception as e:
+            logger.warning(f"Cleanup failed: {e}")
 
 
 def main():
+    wall_start = time.time()
+    perf_start = time.perf_counter()
 
-    inicio = time.time()
+    logger.info("Starting IMDB Pipeline...")
 
-    conn = sqlite3.connect(
-        "imdb_temp.sqlite"
-    )
+    try:
+        with get_connection() as con:
+            process_imdb_data(con)
+            record_import_metadata(con)
+            export_to_sqlite(con)
+        logger.info("All steps executed successfully.")
+    except Exception as e:
+        logger.critical(f"Pipeline execution stopped: {e}")
+    finally:
+        cleanup()
 
-    # Reduce memoria RAM de SQLite
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=NORMAL")
-    conn.execute("PRAGMA temp_store=FILE")
-    conn.execute("PRAGMA cache_size=-20000")
+    perf_end = time.perf_counter()
+    wall_end = time.time()
 
-    mostrar_memoria("inicio")
+    elapsed = perf_end - perf_start
+    start_str = time.strftime(DATE_FORMAT, time.localtime(wall_start))
+    end_str = time.strftime(DATE_FORMAT, time.localtime(wall_end))
 
-    crear_tabla_ratings(
-        conn,
-        "title.ratings.tsv.gz"
-    )
-
-    mostrar_memoria("ratings")
-
-    procesar_series(
-        conn,
-        "title.basics.tsv.gz",
-        10_000
-    )
-
-    mostrar_memoria("series")
-
-    procesar_episodios(
-        conn,
-        "title.episode.tsv.gz"
-    )
-
-    mostrar_memoria("episodios")
-
-    print(
-        conn.execute(
-            "SELECT COUNT(*) FROM series"
-        ).fetchone()
-    )
-
-    print(
-        conn.execute(
-            "SELECT COUNT(*) FROM episodes"
-        ).fetchone()
-    )
-
-    exportar_sqlite_final(
-        conn,
-        "imdb.sqlite"
-    )
-
-    conn.close()
-
-    print(
-        "Tiempo total:",
-        round(time.time()-inicio, 2),
-        "segundos"
-    )
+    logger.info("-" * 40)
+    logger.info(f"Execution started at: {start_str}")
+    logger.info(f"Execution ended at:   {end_str}")
+    logger.info(f"Total duration:       {elapsed_time_str(elapsed)}")
+    logger.info("-" * 40)
 
 
 if __name__ == "__main__":
