@@ -1,5 +1,5 @@
 import debounce from 'lodash.debounce';
-import { useCallback, useEffect, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import type { Episode, Serie } from "./type";
 
 export function useSearchSeries(): [(v: string, callback: any) => void, boolean] {
@@ -59,4 +59,22 @@ export function useGetEpisodes(serie: Serie | null): [Episode[], boolean] {
     }, [serie]);
 
     return [episodes, isLoading];
+}
+
+export function useQuery() {
+    const setQueryParam = (key: string, value: string) => {
+        const url = new URL(window.location.href);
+
+        url.searchParams.set(key, value);
+
+        window.history.replaceState({}, "", url);
+    }
+
+    const getQueryParam = (key: string) => {
+        const url = new URL(window.location.href);
+
+        return url.searchParams.get(key);
+    }
+
+    return { setQueryParam, getQueryParam }
 }

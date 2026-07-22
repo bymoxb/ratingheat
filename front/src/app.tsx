@@ -1,16 +1,28 @@
 import classNames from "classnames"
-import { useMemo, useState } from 'preact/hooks'
+import { useEffect, useMemo, useState } from 'preact/hooks'
 import AsyncSelect from 'react-select/async'
-import { useGetEpisodes, useSearchSeries } from './hooks'
+import { useGetEpisodes, useQuery, useSearchSeries } from './hooks'
 import type { Episode, Serie } from './type'
 import { formatNumber, imgSrc, optionLabel } from './utils'
 
 export function App() {
 
+  const { setQueryParam, getQueryParam } = useQuery();
+
+  const tconst = getQueryParam("t");
+
   const [serieSelected, setSerieSelected] = useState<Serie | null>(null)
 
   const [search, gettingSeries] = useSearchSeries()
   const [episodes] = useGetEpisodes(serieSelected)
+
+  useEffect(() => {
+    if (!tconst) return;
+
+    fetch(`/api/series/${tconst}`)
+      .then(result => result.json())
+      .then((data) => setSerieSelected(data))
+  }, []);
 
   return (
     <main className="container mx-auto p-4">
@@ -22,7 +34,10 @@ export function App() {
         isLoading={gettingSeries}
         getOptionValue={(item) => item.tconst}
         getOptionLabel={optionLabel}
-        onChange={(value) => setSerieSelected(value)}
+        onChange={(value) => {
+          setSerieSelected(value);
+          setQueryParam("t", value?.tconst ?? "")
+        }}
         placeholder="The Big Bang Theory"
         //
         classNames={{
@@ -76,7 +91,7 @@ export function App() {
       {/* <pre className="mt-2">{JSON.stringify(serie, null, 2)}</pre> */}
       <div className="mt-4 flex flex-col gap-4">
         <section class="flex gap-4 dark:text-white">
-          <img src={imgSrc(serieSelected)} alt="no cover" className="h-64 rounded-xl border border-gray-600" />
+          <img src={imgSrc(serieSelected?.tconst)} alt="no cover" className="h-64 rounded-xl border border-gray-600" />
           <section className="flex flex-col gap-3 w-full">
             <h2 className="text-4xl font-bold">{serieSelected?.primaryTitle}</h2>
             <div>
@@ -84,7 +99,7 @@ export function App() {
             </div>
 
             <ul className="flex gap-2">
-              {serieSelected?.genres.split(",").map(item => (
+              {serieSelected?.genres?.split(",").map(item => (
                 <li>
                   <span class="bg-violet-400 px-3 rounded-full font-bold">{item.trim()}</span>
                 </li>
