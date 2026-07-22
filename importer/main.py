@@ -85,9 +85,10 @@ def process_imdb_data(con):
         con.execute(f"""
             CREATE OR REPLACE TABLE episodes AS
             SELECT e.tconst, e.parentTconst, TRY_CAST(e.seasonNumber AS INTEGER) AS seasonNumber, TRY_CAST(e.episodeNumber AS INTEGER) AS episodeNumber, r.averageRating, r.numVotes
-            FROM read_csv_auto('{IMDB_EPISODE_PATH}', delim='\t', header=True, compression='gzip') e
+            FROM read_csv_auto('{IMDB_EPISODE_PATH}', delim='\t', header=True, compression='gzip', nullstr=['\\N']) e
             JOIN ratings r ON e.tconst = r.tconst
-            JOIN series s ON e.parentTconst = s.tconst;
+            JOIN series s ON e.parentTconst = s.tconst
+            WHERE e.seasonNumber IS NOT NULL AND e.episodeNumber IS NOT NULL;
         """)
     except Exception as e:
         logger.error(f"Data processing failed: {e}")
