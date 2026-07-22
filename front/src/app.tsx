@@ -1,3 +1,4 @@
+import classNames from "classnames"
 import { useMemo, useState } from 'preact/hooks'
 import AsyncSelect from 'react-select/async'
 import { useGetEpisodes, useSearchSeries } from './hooks'
@@ -9,12 +10,13 @@ export function App() {
   const [serieSelected, setSerieSelected] = useState<Serie | null>(null)
 
   const [search, gettingSeries] = useSearchSeries()
-  const [episodes, gettingEpisodes] = useGetEpisodes(serieSelected)
+  const [episodes] = useGetEpisodes(serieSelected)
 
   return (
     <main className="container mx-auto p-4">
 
       <AsyncSelect
+        unstyled
         autoFocus
         loadOptions={search}
         isLoading={gettingSeries}
@@ -22,6 +24,53 @@ export function App() {
         getOptionLabel={optionLabel}
         onChange={(value) => setSerieSelected(value)}
         placeholder="The Big Bang Theory"
+        //
+        classNames={{
+          control: ({ isFocused }) =>
+            classNames(
+              "min-h-11 rounded-lg border bg-slate-900 px-2 text-slate-100 shadow-sm transition-all",
+              {
+                "border-sky-500 ring-2 ring-sky-500/30": isFocused,
+                "border-slate-700": !isFocused,
+              }
+            ),
+
+          menu: () =>
+            classNames(
+              "mt-2 rounded-lg border border-slate-700",
+              "bg-slate-900/80 backdrop-blur-sm",
+              "shadow-2xl overflow-hidden"
+            ),
+
+          menuList: () => "p-1",
+
+          option: ({ isFocused, isSelected, isDisabled }) =>
+            classNames(
+              "!cursor-pointer rounded-md px-3 py-2 transition-colors font-medium",
+              {
+                "bg-sky-600 text-white": isSelected,
+                "bg-slate-800/50 text-slate-100 !font-semibold": isFocused && !isSelected,
+                "text-slate-200": !isFocused && !isSelected,
+                "cursor-not-allowed opacity-50": isDisabled,
+              }
+            ),
+
+          placeholder: () => "text-slate-400",
+
+          singleValue: () => "text-slate-100",
+
+          input: () => "text-slate-100",
+
+          indicatorSeparator: () => "my-2 w-px bg-slate-700",
+
+          dropdownIndicator: () => "p-2 text-slate-400 transition-colors hover:text-slate-200",
+
+          clearIndicator: () => "p-2 text-slate-400 transition-colors hover:text-red-400",
+
+          noOptionsMessage: () => "px-3 py-2 text-sm text-slate-400",
+
+          loadingMessage: () => "px-3 py-2 text-sm text-slate-400",
+        }}
       />
 
       {/* <pre className="mt-2">{JSON.stringify(serie, null, 2)}</pre> */}

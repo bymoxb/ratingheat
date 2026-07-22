@@ -1,11 +1,12 @@
-import { useEffect, useState } from "preact/hooks";
+import debounce from 'lodash.debounce';
+import { useCallback, useEffect, useState } from "preact/hooks";
 import type { Episode, Serie } from "./type";
 
-export function useSearchSeries(): [(v: string) => Promise<Serie[]>, boolean] {
+export function useSearchSeries(): [(v: string, callback: any) => void, boolean] {
     const [isLoading, setIsLoading] = useState(false)
 
-    const search = async (value: string): Promise<Serie[]> => {
-        if (value.length < 3) return [];
+    const search = async (value: string) => {
+        if (value.length < 2) return [];
         if (isLoading) return [];
 
         const params = new URLSearchParams()
@@ -27,7 +28,20 @@ export function useSearchSeries(): [(v: string) => Promise<Serie[]>, boolean] {
         return data;
     }
 
-    return [search, isLoading]
+    const debouncedLoadOptions =
+        debounce((inputValue: string, callback) => search(inputValue)
+            .then((data) => {
+                console.log({ data });
+                callback(data)
+            })
+            .catch((error) => {
+                console.error(error);
+                callback([])
+            })
+            , 400);
+
+
+    return [debouncedLoadOptions, isLoading]
 }
 
 export function useGetEpisodes(serie: Serie | null): [Episode[], boolean] {
@@ -41,9 +55,7 @@ export function useGetEpisodes(serie: Serie | null): [Episode[], boolean] {
         fetch(`/api/series/${serie.tconst}/episodes`)
             .then(result => result.json())
             .then(setEpisodes)
-            .finally(() => {
-                setIsLoading(false);
-            });
+            .finally(() => setIsLoading(false));
     }, [serie]);
 
     return [episodes, isLoading];
