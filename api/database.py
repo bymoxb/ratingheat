@@ -1,27 +1,24 @@
 import os
+from pathlib import Path
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-# Obtener la ruta absoluta del directorio actual
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SQLITE_PATH = os.getenv("SQLITE_PATH", "database/imdb.sqlite")
 
-# Ruta de la base de datos
-DB_PATH = os.path.join(BASE_DIR, "../", "imdb.sqlite")
+DB_PATH = Path(SQLITE_PATH).resolve()
 
-print("BASE_DIR:", BASE_DIR)
-print("DB_PATH:", DB_PATH)
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-# Validar que la base de datos exista
-if not os.path.isfile(DB_PATH):
-    raise FileNotFoundError(
-        f"No se encontró la base de datos SQLite: {DB_PATH}"
-    )
+DATABASE_URL = f"sqlite:///{DB_PATH}"
 
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
+print(f"Using database at: {DB_PATH}")
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    pool_pre_ping=True,
+    echo=False,  # Set True to log SQL statements
 )
 
 SessionLocal = sessionmaker(
@@ -32,12 +29,26 @@ SessionLocal = sessionmaker(
 
 
 class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy models."""
     pass
 
 
 def get_db():
+    """
+    Provide a database session for each request.
+    """
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+def init_db():
+    """
+    Create all registered tables if they do not already exist.
+
+    Note:
+        All model modules must be imported before calling this function.
+    """
+    Base.metadata.create_all(bind=engine)

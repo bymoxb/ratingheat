@@ -10,11 +10,19 @@ def search_series_by_title(db: Session, title: str):
     query = (
         select(models.Series)
         .where(models.Series.primaryTitle.ilike(f"%{title}%"))
+        .order_by(models.Series.numVotes.desc())
         .order_by(models.Series.averageRating.desc())
         .limit(5)
     )
     return db.execute(query).scalars().all()
 
+
+def get_serie_by_id(db: Session, tconst: str):
+    """
+    Busca una serie por su ID (tconst).
+    """
+    query = select(models.Series).where(models.Series.tconst == tconst)
+    return db.execute(query).scalar_one_or_none()
 
 def get_episodes_by_series_id(db: Session, series_id: str):
     """
@@ -23,8 +31,8 @@ def get_episodes_by_series_id(db: Session, series_id: str):
     query = (
         select(models.Episode)
         .where(models.Episode.parentTconst == series_id)
-        .where(models.Episode.seasonNumber.is_not(None))
-        .where(models.Episode.episodeNumber.is_not(None))
+        # .where(models.Episode.seasonNumber.is_not(None))
+        # .where(models.Episode.episodeNumber.is_not(None))
         .order_by(models.Episode.seasonNumber.asc())
         .order_by(models.Episode.episodeNumber.asc())
     )

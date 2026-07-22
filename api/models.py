@@ -30,3 +30,12 @@ class Episode(Base):
     # Relación: el episodio pertenece a una serie
     series = relationship("Series", back_populates="episodes")
     
+
+class ImportMetadata(Base):
+    __tablename__ = "import_metadata"
+
+    imported_at: Mapped[str] = mapped_column(
+        String,
+        primary_key=True,
+        index=True,
+    )

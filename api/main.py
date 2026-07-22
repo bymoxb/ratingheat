@@ -1,15 +1,19 @@
-from fastapi import FastAPI
-from .database import engine, Base
+from contextlib import asynccontextmanager
 from .routers import series
+from .database import init_db
+from fastapi import FastAPI
+from dotenv import load_dotenv
+load_dotenv()
 
-# Crea las tablas si no existen (en producción usa Alembic)
-# Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Series API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Series API", lifespan=lifespan)
 
 app.include_router(series.router)
 
-
-@app.get("/")
-def health_check():
-    return {"status": "ok"}
+app.frontend("/", directory="dist", fallback="index.html",)

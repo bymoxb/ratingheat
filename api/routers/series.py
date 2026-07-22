@@ -13,6 +13,16 @@ def search_series(title: str, db: Session = Depends(database.get_db)):
     """
     return crud.search_series_by_title(db, title)
 
+
+@router.get("/{tconst}", response_model=schemas.SeriesSchema)
+def get_serie(tconst: str, db: Session = Depends(database.get_db)):
+    """
+    Endpoint para obtener una serie por su ID (tconst).
+    Ejemplo: /series/tt0110475
+    """
+    return crud.get_serie_by_id(db, tconst)
+
+
 @router.get("/{tconst}/episodes", response_model=List[schemas.EpisodeSchema])
 def get_series_episodes(tconst: str, db: Session = Depends(database.get_db)):
     """
