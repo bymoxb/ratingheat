@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks'
 import Heatmap from './components/heatmap'
 import { SerieDetail } from './components/serie.detail'
 import { SeriesSelect } from "./components/serie.select"
+import WelcomeMessage from './components/welcome.message'
 import { useGetEpisodes, useGetSerieById, useQuery, useSearchSeries } from './hooks'
 import type { Serie } from './type'
 
@@ -35,13 +36,16 @@ export function App() {
 
       <div className="mt-6 flex flex-col gap-6">
 
-        {serieSelected && (
-          <SerieDetail serie={serieSelected} />
+        {serieSelected ? (
+          <>
+            <SerieDetail serie={serieSelected} />
+            <div className="overflow-x-auto pb-4">
+              <Heatmap episodes={episodes} />
+            </div>
+          </>
+        ) : (
+          <WelcomeMessage />
         )}
-
-        <div className="overflow-x-auto pb-4"> 
-          <Heatmap episodes={episodes} />
-        </div>
 
       </div>
 
