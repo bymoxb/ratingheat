@@ -42,7 +42,7 @@ func LoadEnv() (*Config, error) {
 
 	//
 	var trustedProxies []string
-	trustedProxiesEnv := os.Getenv("DW_TRUSTED_PROXIES")
+	trustedProxiesEnv := os.Getenv("TRUSTED_PROXIES")
 	if trustedProxiesEnv != "" {
 		trustedProxies = strings.Split(trustedProxiesEnv, ",")
 	} else {
@@ -71,7 +71,7 @@ func LoadEnv() (*Config, error) {
 	return &Config{
 		SQLITE_PATH:       DB_URL,
 		TrustedProxies:    trustedProxies,
-		TrustedPlatform:   os.Getenv("DW_TRUSTED_PLATFORM"),
+		TrustedPlatform:   os.Getenv("TRUSTED_PLATFORM"),
 		DuckDBThreads:     DuckDBThreads,
 		DuckDBMemoryLimit: DuckDBMemoryLimit,
 		IMDBMinVotes:      IMDBMinVotes,
