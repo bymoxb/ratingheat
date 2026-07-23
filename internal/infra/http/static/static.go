@@ -4,7 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"log/slog"
-	"net/http"
+	nethttp "net/http"
 	"strings"
 
 	ginstatic "github.com/gin-contrib/static"
@@ -31,7 +31,7 @@ func SetupStaticRoutes(r *gin.Engine) error {
 			}
 			defer index.Close()
 			stat, _ := index.Stat()
-			http.ServeContent(c.Writer, c.Request, "index.html", stat.ModTime(), index)
+			nethttp.ServeContent(c.Writer, c.Request, "index.html", stat.ModTime(), index)
 		}
 	})
 

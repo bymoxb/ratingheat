@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/bymoxb/ratingheat/internal/application/services"
-	"github.com/bymoxb/ratingheat/internal/infra/htpp/dtos"
+	"github.com/bymoxb/ratingheat/internal/infra/http/dtos"
 	"github.com/gin-gonic/gin"
 )
 

@@ -7,8 +7,8 @@ import (
 
 	"github.com/bymoxb/ratingheat/internal/application/services"
 	"github.com/bymoxb/ratingheat/internal/infra/config"
-	"github.com/bymoxb/ratingheat/internal/infra/htpp/controllers"
-	"github.com/bymoxb/ratingheat/internal/infra/htpp/static"
+	"github.com/bymoxb/ratingheat/internal/infra/http/controllers"
+	"github.com/bymoxb/ratingheat/internal/infra/http/static"
 	"github.com/bymoxb/ratingheat/internal/infra/persistence/sqlite"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
