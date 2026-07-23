@@ -15,60 +15,50 @@ export function SerieDetail({ serie }: Props) {
     useEffect(() => setSrc(`https://live.metahub.space/poster/medium/${serie.tconst}/img`), [serie.tconst])
 
     return (
-        <section className="flex gap-4 dark:text-white">
+        <section className="flex flex-col md:flex-row gap-6 dark:text-white items-center md:items-start">
 
             <img
                 src={src}
                 onError={() => setSrc("/no-cover.webp")}
                 alt={serie.primaryTitle}
-                className="h-64 w-44 rounded-xl border border-gray-600 object-cover"
+                className="h-72 w-52 md:h-64 md:w-44 rounded-2xl border border-gray-600 object-cover shadow-xl"
             />
 
-            {/* <img
-                src={imgSrc(serie.tconst)}
-                alt={serie.primaryTitle}
-                className="h-64 rounded-xl border border-gray-600"
-            /> */}
-
-
-            <section className="flex flex-col gap-3 w-full">
-
-                <h2 className="text-4xl font-bold">
-                    {serie.primaryTitle}
-                </h2>
-
-
+            <section className="flex flex-col gap-4 w-full text-center md:text-left">
                 <div>
-                    🌟
-                    <span className="font-bold ml-1">
-                        {serie.averageRating}
-                    </span>
-                    /10
+                    <h2 className="text-3xl md:text-5xl font-extrabold leading-tight">
+                        {serie.primaryTitle}
+                    </h2>
 
-                    <span className="ml-2 italic">
-                        {formatNumber(serie.numVotes)}
-                    </span>
+                    <div className="mt-2 flex items-center justify-center md:justify-start text-lg">
+                        <span className="text-yellow-400">🌟</span>
+                        <span className="font-bold ml-1">{serie.averageRating}</span>
+                        <span className="text-gray-400 mx-1">/10</span>
+                        <span className="ml-2 text-sm font-bold italic text-gray-300">
+                            ({formatNumber(serie.numVotes)} votes)
+                        </span>
+                    </div>
                 </div>
 
+                <div className="flex justify-center md:justify-start">
+                    <Genres value={serie.genres} />
+                </div>
 
-                <Genres value={serie.genres} />
-
+                <div>
                 <a
                     href={`https://www.imdb.com/title/${serie.tconst}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-amber-500 hover:underline"
+                        className="inline-block text-amber-500 hover:text-amber-400 font-bold transition-colors"
                 >
-                    IMDb ↗
+                        Go to IMDb ↗️
                 </a>
+                </div>
 
-
-                <div className="flex-1" />
+                <div className="hidden md:block flex-1" />
 
                 <RatingLegend />
-
             </section>
-
         </section>
     );
 }

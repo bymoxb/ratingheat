@@ -24,7 +24,7 @@ export function App() {
   };
 
   return (
-    <main className="container mx-auto p-4">
+    <main className="container mx-auto p-3 md:p-6 lg:p-8">
 
       <SeriesSelect
         loadOptions={search}
@@ -33,13 +33,15 @@ export function App() {
         onChange={handleSerieChange}
       />
 
-      <div className="mt-4 flex flex-col gap-4">
+      <div className="mt-6 flex flex-col gap-6">
 
         {serieSelected && (
           <SerieDetail serie={serieSelected} />
         )}
 
-        <Heatmap episodes={episodes} />
+        <div className="overflow-x-auto pb-4"> 
+          <Heatmap episodes={episodes} />
+        </div>
 
       </div>
 
