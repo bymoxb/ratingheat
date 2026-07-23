@@ -29,7 +29,7 @@ func (self *SerieRepositoryImpl) SearchSeries(title string) []serie.Serie {
 	result := self.db.
 		Where("LOWER(primaryTitle) LIKE ?", "%"+title+"%").
 		Order("numVotes desc").
-		Order("AverageRating desc").
+		Order("averageRating desc").
 		Limit(5).
 		Find(&sqlResult)
 
@@ -77,10 +77,9 @@ func (self *SerieRepositoryImpl) GetEpisodesBySerieId(tconst string) []episode.E
 	var items []episode.Episode = []episode.Episode{}
 
 	var sqlResult []EpisodeModel
-	result := self.db.
-		Where("ParentTconst = ?", tconst).
-		Order("SeasonNumber asc").
-		Order("EpisodeNumber asc").
+	result := self.db.Where(&EpisodeModel{ParentTconst: tconst}).
+		Order("seasonNumber ASC").
+		Order("episodeNumber ASC").
 		Find(&sqlResult)
 
 	if result.Error != nil {

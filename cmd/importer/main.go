@@ -319,7 +319,7 @@ func recordImportMetadata(con *sql.DB) error {
 
 	query := `
 	CREATE OR REPLACE TABLE import_metadata AS
-	SELECT CURRENT_TIMESTAMP AS imported_at;
+	SELECT CURRENT_TIMESTAMP AS importedAt;
 	`
 
 	_, err := con.Exec(query)
