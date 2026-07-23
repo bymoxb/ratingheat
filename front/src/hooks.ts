@@ -77,3 +77,17 @@ export function useQuery() {
 
     return { setQueryParam, getQueryParam }
 }
+
+export function useGetSerieById(tconst: string | null, setSerie: (value: Serie | null) => void) {
+    useEffect(() => {
+
+        if (!tconst) return;
+
+        fetch(`/api/series/${tconst}`)
+            .then(res => res.json())
+            .then(({ data }) => {
+                setSerie(data);
+            });
+
+    }, [tconst]);
+}

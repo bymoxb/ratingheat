@@ -16,12 +16,6 @@ export function formatNumber(num: number = 0) {
     return num.toString();
 }
 
-export function imgSrc(s?: string | null): string {
-    if (!s) return "";
-
-    return `https://live.metahub.space/poster/medium/${s}/img`
-}
-
 export function optionLabel(s: Serie) {
     if (!s) return "";
 
