@@ -15,7 +15,7 @@ export function useSearchSeries(): [(v: string, callback: any) => void, boolean]
 
         setIsLoading(true);
 
-        const raw = await fetch("/api/series/search?" + params.toString())
+        const raw = await fetch("/api/series?" + params.toString())
 
         if (!raw.ok) {
             return [];
@@ -25,13 +25,12 @@ export function useSearchSeries(): [(v: string, callback: any) => void, boolean]
 
         setIsLoading(false);
 
-        return data;
+        return data.data;
     }
 
     const debouncedLoadOptions =
         debounce((inputValue: string, callback) => search(inputValue)
             .then((data) => {
-                console.log({ data });
                 callback(data)
             })
             .catch((error) => {
@@ -54,7 +53,7 @@ export function useGetEpisodes(serie: Serie | null): [Episode[], boolean] {
         setIsLoading(true)
         fetch(`/api/series/${serie.tconst}/episodes`)
             .then(result => result.json())
-            .then(setEpisodes)
+            .then((data) => setEpisodes(data.data))
             .finally(() => setIsLoading(false));
     }, [serie]);
 

@@ -21,7 +21,7 @@ export function App() {
 
     fetch(`/api/series/${tconst}`)
       .then(result => result.json())
-      .then((data) => setSerieSelected(data))
+      .then((data) => setSerieSelected(data.data))
   }, []);
 
   return (
