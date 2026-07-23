@@ -53,3 +53,6 @@ Thumbs.db
 
 
 *.db
+*.duckdb
+server
+ratingimporter
