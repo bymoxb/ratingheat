@@ -18,10 +18,20 @@ on:
   #   branches:
   #     - main
 
+  push:
+    branches: [ "main" ]
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "front/**"
+      - "dockerfile"
+      - "go.mod"
+      - "go.sum"
+
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag de la imagen"
+        description: "Tag name"
         required: true
         default: "latest"
 
