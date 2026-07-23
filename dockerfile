@@ -43,6 +43,7 @@ RUN go mod download
 COPY internal/ internal/
 COPY cmd/ cmd/
 
+RUN rm -rf ./internal/infra/http/static/dist
 
 # Frontend static assets
 COPY --from=frontend-builder \
