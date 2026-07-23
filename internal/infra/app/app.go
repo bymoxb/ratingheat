@@ -52,6 +52,10 @@ func NewApp() (*App, error) {
 		return nil, err
 	}
 
+	if err = SetupOrigins(cfg, router); err != nil {
+		return nil, err
+	}
+
 	return &App{
 		router: router,
 	}, nil
