@@ -3,8 +3,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -29,6 +32,7 @@ func elapsedTimeStr(seconds float64) string {
 }
 
 const DATE_FORMAT = "2006-01-02 15:04:05"
+const IMDB_TEMP_PATH = "/tmp/ratingheat-imdb"
 
 func main() {
 
@@ -65,7 +69,13 @@ func Run(cfg *config.Config) {
 		return
 	}
 
-	err = processImdbData(con, cfg)
+	datasets, err := downloadIMDbDatasets(cfg)
+	if err != nil {
+		slog.Error("Download failed", "error", err)
+		return
+	}
+
+	err = processImdbData(con, cfg, datasets)
 	if err != nil {
 		slog.Error("Pipeline execution stopped", "error", err)
 		return
@@ -138,6 +148,99 @@ func printMem(label string) {
 	)
 }
 
+func downloadFile(url, dst string) error {
+
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return err
+	}
+
+	slog.Info("Downloading", "url", url)
+
+	client := &http.Client{
+		Timeout: 0,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("http status %d", resp.StatusCode)
+	}
+
+	tmp := dst + ".part"
+
+	f, err := os.Create(tmp)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	start := time.Now()
+
+	n, err := io.Copy(f, resp.Body)
+	if err != nil {
+		os.Remove(tmp)
+		return err
+	}
+
+	if err := f.Sync(); err != nil {
+		return err
+	}
+
+	if err := os.Rename(tmp, dst); err != nil {
+		return err
+	}
+
+	slog.Info(
+		"Download completed",
+		"file", dst,
+		"bytes", n,
+		"elapsed", time.Since(start),
+	)
+
+	return nil
+}
+
+func downloadIMDbDatasets(cfg *config.Config) (map[string]string, error) {
+
+	files := map[string]struct {
+		url  string
+		name string
+	}{
+		"ratings": {
+			url:  cfg.IMDBRatingsUrl,
+			name: "title.ratings.tsv.gz",
+		},
+		"basics": {
+			url:  cfg.IMDBBasicsUrl,
+			name: "title.basics.tsv.gz",
+		},
+		"episodes": {
+			url:  cfg.IMDBEpisodeUrl,
+			name: "title.episode.tsv.gz",
+		},
+	}
+
+	result := make(map[string]string)
+
+	for key, file := range files {
+
+		dst := filepath.Join(IMDB_TEMP_PATH, file.name)
+
+		if err := downloadFile(file.url, dst); err != nil {
+			return nil, err
+		}
+
+		result[key] = dst
+	}
+
+	return result, nil
+}
+
 func getConnection(cfg *config.Config) (*sql.DB, error) {
 	con, err := sql.Open("duckdb", cfg.DuckDB)
 
@@ -177,7 +280,7 @@ func getConnection(cfg *config.Config) (*sql.DB, error) {
 	return con, nil
 }
 
-func processImdbData(con *sql.DB, cfg *config.Config) error {
+func processImdbData(con *sql.DB, cfg *config.Config, datasets map[string]string) error {
 
 	queries := []struct {
 		name  string
@@ -189,7 +292,7 @@ func processImdbData(con *sql.DB, cfg *config.Config) error {
 			CREATE OR REPLACE TABLE ratings AS
 			SELECT *
 			FROM read_csv(
-				'` + cfg.IMDBRatingsUrl + `',
+				'` + datasets["ratings"] + `',
 				delim='\t',
 				header=True,
 				compression='gzip',
@@ -214,7 +317,7 @@ func processImdbData(con *sql.DB, cfg *config.Config) error {
 				endYear,
 				genres
 			FROM read_csv(
-				'` + cfg.IMDBBasicsUrl + `',
+				'` + datasets["basics"] + `',
 				delim='\t',
 				header=True,
 				compression='gzip',
@@ -260,7 +363,7 @@ func processImdbData(con *sql.DB, cfg *config.Config) error {
 				r.averageRating,
 				r.numVotes
 			FROM read_csv(
-				'` + cfg.IMDBEpisodeUrl + `',
+				'` + datasets["episodes"] + `',
 				delim='\t',
 				header=True,
 				compression='gzip',
@@ -411,5 +514,20 @@ func cleanup(cfg *config.Config) {
 	slog.Info(
 		"Cleaned up temporary file",
 		"path", cfg.DuckDB,
+	)
+
+	err = os.RemoveAll(IMDB_TEMP_PATH)
+	if err != nil {
+		slog.Error(
+			"Cleanup temp imdb files",
+			"error", err,
+			"path", IMDB_TEMP_PATH,
+		)
+		return
+	}
+
+	slog.Info(
+		"Cleaned temp imdb files",
+		"path", IMDB_TEMP_PATH,
 	)
 }
