@@ -1,27 +1,37 @@
 # =========================
-# Python / FastAPI
+# Go
 # =========================
 
-# Virtual environment
-venv/
-.venv/
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 
-# Python cache
-__pycache__/
-*.py[cod]
+# Test binary
+*.test
 
-# Logs
-*.log
+# Coverage
+*.out
+coverage.out
+coverage.html
 
-# Tests / coverage
-.pytest_cache/
-.coverage
-htmlcov/
+# Go workspace
+go.work.sum
 
-# Environment variables (secret keys)
+# Local binaries (si compilas en la raíz)
+server
+main
+ratingimporter
+
+# =========================
+# Environment variables
+# =========================
+
 .env
 .env.*
-
+!.env.example
 
 # =========================
 # Vite / Node
@@ -36,13 +46,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-
 # =========================
-# VS Code
+# IDEs
 # =========================
 
 .vscode/
-
+.idea/
 
 # =========================
 # OS
@@ -51,8 +60,11 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
+# =========================
+# Databases
+# =========================
 
 *.db
+*.sqlite
+*.sqlite3
 *.duckdb
-server
-ratingimporter
