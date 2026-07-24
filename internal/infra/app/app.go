@@ -101,6 +101,10 @@ func SetupApiRoutes(db *gorm.DB, groups *gin.RouterGroup) {
 
 func SetupOrigins(cfg *config.Config, router *gin.Engine) error {
 
+	if !cfg.IsProd {
+		return nil
+	}
+
 	switch cfg.TrustedPlatform {
 	case "cloudflare":
 		router.TrustedPlatform = gin.PlatformCloudflare

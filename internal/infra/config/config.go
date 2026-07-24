@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	IsProd            bool
 	SQLITE_PATH       string
 	TrustedProxies    []string
 	TrustedPlatform   string
@@ -59,7 +60,7 @@ func LoadEnv() (*Config, error) {
 	//
 	DuckDB := getenvString("DUCKDB_DATABASE", "/tmp/import.duckdb")
 	DuckDBThreads := getenvInt("DUCKDB_THREADS", 1)
-	DuckDBMemoryLimit := getenvString("DUCKDB_MEMORY_LIMIT", "512MB")
+	DuckDBMemoryLimit := getenvString("DUCKDB_MEMORY_LIMIT", "512MiB")
 
 	IMDBMinVotes := getenvInt("IMDB_MIN_VOTES", 10000)
 	IMDBTitleTypes := getenvString("IMDB_TITLE_TYPES", "'tvSeries','tvMiniSeries'")
@@ -69,6 +70,7 @@ func LoadEnv() (*Config, error) {
 	IMDBEpisodeUrl := getenvString("IMDB_EPISODE_URL", "https://datasets.imdbws.com/title.episode.tsv.gz")
 
 	return &Config{
+		IsProd:            os.Getenv("ENV") == "production",
 		SQLITE_PATH:       DB_URL,
 		TrustedProxies:    trustedProxies,
 		TrustedPlatform:   os.Getenv("TRUSTED_PLATFORM"),
