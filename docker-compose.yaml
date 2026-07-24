@@ -1,0 +1,15 @@
+services:
+  ratingheat:
+    build:
+      context: .
+      dockerfile: dockerfile
+    image: ratingheat:local
+    container_name: ratingheat-local
+    # restart: unless-stopped
+    user: "${UID}:${GID}"
+    environment:
+      - SQLITE_PATH=/data/rating.db
+    volumes:
+      - ./config/ratingheat:/data
+    ports:
+      - 8080:8080

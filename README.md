@@ -23,6 +23,62 @@ This tool transforms complex episode rating data into visual patterns, allowing 
 - 🗄️ **Smart Data Import** - Automated ETL pipeline using DuckDB for IMDb metadata processing
 - 🌐 **IMDb Integration** - Direct links to IMDb pages for each series
 
+## Quick Start
+
+### Docker Deployment
+
+```bash
+# Create the data directory
+mkdir -p ./config/ratingheat
+
+# Run the container with environment variables and a persistent volume:
+docker run -d \
+  --name ratingheat \
+  --restart unless-stopped \
+  --user "$(id -u):$(id -g)" \
+  -e SQLITE_PATH=/data/rating.db \
+  -v $(pwd)/config/ratingheat:/data \
+  -p 8080:8080 \
+  ghcr.io/bymoxb/ratingheat:latest
+```
+
+Access the application at `http://localhost:8080`
+
+### Docker Compose
+
+Create a `docker-compose.yml` file in the project root with the following content:
+
+```yaml
+services:
+  ratingheat:
+    image: ghcr.io/bymoxb/ratingheat:latest
+    container_name: ratingheat
+    restart: unless-stopped
+    user: "${UID}:${GID}"
+    environment:
+      - SQLITE_PATH=/data/rating.db
+    volumes:
+      - ./config/ratingheat:/data
+    ports:
+      - 8080:8080
+```
+
+Steps to use `docker compose`:
+
+```bash
+# Create data directory (if it doesn't exist)
+mkdir -p ./config/ratingheat
+
+# Start the service in detached mode
+docker compose up -d
+
+# View logs
+docker compose logs -f ratingheat
+
+# Stop and remove
+docker compose down
+```
+
 ## Technology Stack
 
 ### Backend
@@ -78,69 +134,6 @@ ratingheat/
 ├── dockerfile                   # Multi-stage Docker configuration
 ├── go.mod                        # Go module dependencies
 └── LICENSE                       # MIT License
-```
-
-## Quick Start
-
-### Prerequisites
-
-- **Go** 1.18 or higher
-- **Node.js** 18+ and pnpm
-- **Docker** (optional, for containerized deployment)
-- **SQLite** (included with Go SQLite driver)
-
-### Docker Deployment
-
-```bash
-# Create the data directory
-mkdir -p ./config/ratingheat
-
-# Run the container with environment variables and a persistent volume:
-docker run -d \
-  --name ratingheat \
-  --restart unless-stopped \
-  --user "$(id -u):$(id -g)" \
-  -e SQLITE_PATH=/data/rating.db \
-  -v $(pwd)/config/ratingheat:/data \
-  -p 8080:8080 \
-  ghcr.io/bymoxb/ratingheat:latest
-```
-
-Access the application at `http://localhost:8080`
-
-### Docker Compose
-
-Create a `docker-compose.yml` file in the project root with the following content:
-
-```yaml
-services:
-  ratingheat:
-    image: ghcr.io/bymoxb/ratingheat:latest
-    container_name: ratingheat
-    restart: unless-stopped
-    user: "${UID}:${GID}"
-    environment:
-      - SQLITE_PATH=/data/rating.db
-    volumes:
-      - ./config/ratingheat:/data
-    ports:
-      - 8080:8080
-```
-
-Steps to use `docker compose`:
-
-```bash
-# Create data directory (if it doesn't exist)
-mkdir -p ./config/ratingheat
-
-# Start the service in detached mode
-docker compose up -d
-
-# View logs
-docker compose logs -f ratingheat
-
-# Stop and remove
-docker compose down
 ```
 
 ## Environment Variables
@@ -210,6 +203,14 @@ Automatic migrations ensure schema consistency on startup.
 
 ## Development
 
+### Prerequisites
+
+- **Go** 1.26 or higher
+- **Node.js** 24 or higher
+- **PNPM** 11 or higher
+- **Docker** (optional, for containerized deployment)
+- **SQLite** (included with Go SQLite driver)
+
 ### 1. Clone the Repository
 
 ```bash
@@ -248,6 +249,25 @@ pnpm install
 
 # Start development server
 pnpm dev
+```
+
+### 5. Docker Setup
+
+```bash
+# Create the configuration directory
+mkdir -p ./config/ratingheat
+
+# Build and run using Docker Compose
+docker compose up --build
+
+# Run with `docker run` (when the image has already been built)
+docker run --rm \
+  --name ratingheat3 \
+  --user "$(id -u):$(id -g)" \
+  -e SQLITE_PATH=/data/rating.db \
+  -v "$(pwd)/config/ratingheat:/data" \
+  -p 8080:8080 \
+  ratingheat:local
 ```
 
 
