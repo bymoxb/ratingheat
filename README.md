@@ -5,9 +5,11 @@
 
 ## Overview
 
-**RatingHeat** is an interactive TV series episode heatmap that visualizes episode ratings across seasons. Search a series and explore every episode through color-based data visualization powered by IMDb non-commercial datasets.
+**RatingHeat** is an interactive TV series episode heatmap that visualizes episode ratings across seasons. Search for a series and explore every episode through a color-based visualization powered by the IMDb non-commercial datasets.
 
-This tool transforms complex episode rating data into visual patterns, allowing you to quickly identify trends and quality fluctuations across entire seasons and series. Perfect for TV enthusiasts, data analysts, and content researchers who want to explore IMDb ratings in a new, engaging way.
+This tool transforms complex episode rating data into visual patterns, allowing you to quickly identify trends and quality fluctuations across entire seasons and series. It is ideal for TV enthusiasts, data analysts, and content researchers who want to explore IMDb ratings in a more intuitive and engaging way.
+
+🚀 **Try the live application:** https://ratingheat.illapa.dev/
 
 ## Key Features
 
