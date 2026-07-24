@@ -105,11 +105,13 @@ func SetupOrigins(cfg *config.Config, router *gin.Engine) error {
 		return nil
 	}
 
-	switch cfg.TrustedPlatform {
-	case "cloudflare":
-		router.TrustedPlatform = gin.PlatformCloudflare
-	default:
-		return fmt.Errorf("Unsupported trusted platform: %s", cfg.TrustedPlatform)
+	if cfg.TrustedPlatform != "" {
+		switch cfg.TrustedPlatform {
+		case "cloudflare":
+			router.TrustedPlatform = gin.PlatformCloudflare
+		default:
+			return fmt.Errorf("Unsupported trusted platform: %s", cfg.TrustedPlatform)
+		}
 	}
 
 	if err := router.SetTrustedProxies(cfg.TrustedProxies); err != nil {
